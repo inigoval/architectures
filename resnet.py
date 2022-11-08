@@ -150,7 +150,7 @@ class ResNet(nn.Module):
         width_per_group: int = 64,
     ) -> None:
         super().__init__()
-        norm_layer = nn.BatchNorm2d
+        self.norm_layer = nn.BatchNorm2d
 
         self.layers = nn.ModuleList([])
 
@@ -299,7 +299,7 @@ def _get_resnet(
         block_dict = {"basic": BasicBlock, "bottleneck": Bottleneck}
         block = block_dict[block_type]
         return ResNet(block, layers, **kwargs)
-    elif preset in preset_models.keys():
+    elif preset in preset_models:
         return preset_models[preset](**kwargs)
     else:
         raise KeyError(f"Specified preset {preset} is not implemented yet.")
