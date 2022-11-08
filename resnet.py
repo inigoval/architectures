@@ -1,5 +1,4 @@
 from typing import Type, Any, Callable, Union, List, Optional
-
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -170,21 +169,27 @@ class ResNet(nn.Module):
         self.layers.append(
             nn.Sequential(
                 conv1,
-                norm_layer(self.inplanes),
+                self.norm_layer(self.inplanes),
                 nn.ReLU(inplace=True),
                 nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
             )
         )
 
+        # self.layers.append(self._make_layer(block, 64, layers[0]))
+        # self.layers.append(self._make_layer(block, 128, layers[1], stride=2))
+        # self.layers.append(self._make_layer(block, 256, layers[2], stride=2))
+        # self.layers.append(self._make_layer(block, 512, layers[3], stride=2))
+
         # Add resnet layers
-        self.layers.append(self._make_layer(block, 64, layers[0]))
-        self.layers.append(self._make_layer(block, 128, layers[1], stride=2))
-        self.layers.append(self._make_layer(block, 256, layers[2], stride=2))
-        self.layers.append(self._make_layer(block, 512, layers[3], stride=2))
+        self.layers += self._make_layer(block, 64, layers[0])
+        self.layers += self._make_layer(block, 128, layers[1], stride=2)
+        self.layers += self._make_layer(block, 256, layers[2], stride=2)
+        self.layers += self._make_layer(block, 512, layers[3], stride=2)
+
         if features != 512:
             # Conv layer simply projects features down to stated dimension with 1x1 kernel
-            self.layers[-1][-1] = block(
-                self.inplanes,
+            self.layers[-1] = block(
+                512,
                 features,
                 groups=self.groups,
                 base_width=self.base_width,
@@ -217,6 +222,9 @@ class ResNet(nn.Module):
                 elif isinstance(m, BasicBlock) and m.bn2.weight is not None:
                     nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
 
+        # Point finetuner to module list of layers
+        self.finetuning_layers = self.layers
+
     def _make_layer(
         self,
         block: Type[Union[BasicBlock, Bottleneck]],
@@ -224,7 +232,7 @@ class ResNet(nn.Module):
         blocks: int,
         stride: int = 1,
         dilate: bool = False,
-    ) -> nn.Sequential:
+    ) -> nn.ModuleList:
 
         norm_layer = self.norm_layer
         downsample = None
@@ -264,7 +272,8 @@ class ResNet(nn.Module):
                 )
             )
 
-        return nn.Sequential(*layers)
+        # return nn.Sequential(*layers)
+        return nn.ModuleList(layers)
 
     def forward(self, x: Tensor) -> Tensor:
         # See note [TorchScript super()]
@@ -314,8 +323,9 @@ class ResNet_Encoder(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        self.encoder = _get_resnet(preset, block_type, **kwargs)
-        self.finetuning_layers = self.layers
+        self.network = _get_resnet(preset, block_type, **kwargs)
+        self.finetuning_layers = self.network.layers
+        self.features = self.dim = self.network.features
 
     def forward(self, x):
-        return self.encoder(x)
+        return self.network(x)
