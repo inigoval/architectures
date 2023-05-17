@@ -6,6 +6,7 @@ astroaugmentations
 __pycache__
 *ipynb*
 .ipynb*
+build
 
 .vscode
 files/wandb

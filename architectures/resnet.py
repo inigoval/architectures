@@ -226,7 +226,6 @@ class ResNet(nn.Module):
         stride: int = 1,
         dilate: bool = False,
     ) -> nn.ModuleList:
-
         norm_layer = self.norm_layer
         downsample = None
         previous_dilation = self.dilation
@@ -294,7 +293,6 @@ def _get_resnet(
     layers: List = [2, 2, 2, 2],
     **kwargs,
 ):
-
     preset_models = {"resnet18": _resnet18, "resnet34": _resnet34, "resnet50": _resnet50}
 
     if preset.lower() == "none":

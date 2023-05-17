@@ -178,7 +178,6 @@ def pair(t):
 class ViT(nn.Module):
     def __init__(
         self,
-        *,
         image_size: int,
         patch_size: int,
         dim: int,
@@ -226,9 +225,7 @@ class ViT(nn.Module):
         # Turn (c x h x w) images into (n_patchs x patch_dim) flattened patches and
         # project to latent dimension
         self.to_patch_embedding = nn.Sequential(
-            Rearrange(
-                "b c (n1 p1) (n2 p2) -> b (n1 n2) (p1 p2 c)", p1=patch_height, p2=patch_width
-            ),
+            Rearrange("b c (n1 p1) (n2 p2) -> b (n1 n2) (p1 p2 c)", p1=patch_height, p2=patch_width),
             nn.Linear(patch_dim, dim),
         )
 

@@ -14,19 +14,37 @@ class MLPHead(nn.Module):
     feature space of encoder doesn't need to be normalized.
     """
 
-    def __init__(self, in_channels, mlp_hidden_size, projection_size):
+    def __init__(self, input_dim, depth, width, output_dim):
         super(MLPHead, self).__init__()
 
-        self.net = nn.Sequential(
-            nn.BatchNorm1d(in_channels),
-            nn.Linear(in_channels, mlp_hidden_size),
-            nn.BatchNorm1d(mlp_hidden_size),
-            nn.ReLU(inplace=True),
-            nn.Linear(mlp_hidden_size, projection_size),
+        self.input_layer = nn.Sequential(
+            nn.BatchNorm1d(input_dim),
+            nn.Linear(input_dim, width),
+            nn.GELU(),
+        )
+
+        self.hidden_layers = nn.ModuleList()
+        for i in range(depth):
+            self.hidden_layers.append(
+                nn.Sequential(
+                    nn.Linear(width, width),
+                    nn.GELU(),
+                )
+            )
+
+        self.output_layer = nn.Sequential(
+            nn.Linear(width, output_dim),
         )
 
     def forward(self, x):
-        return self.net(x)
+        x = self.input_layer(x)
+
+        for layer in self.hidden_layers:
+            x = layer(x)
+
+        x = self.output_layer(x)
+
+        return x
 
 
 class MLP(nn.Module):
@@ -40,7 +58,7 @@ class MLP(nn.Module):
         out_channels: int,
         hidden_channels: tuple,
         activation: str = "gelu",
-        normalize_input=False,
+        normalize_input=True,
     ):
         super().__init__()
 
